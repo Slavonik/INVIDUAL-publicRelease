@@ -1,0 +1,331 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <windows.h>
+#include <string.h>
+#include <string>
+#include <time.h>
+
+//Структура содержащая данные о клиентах (БД клиентов).
+//			Составляется на основе данных из client.txt
+struct clients {
+	char* FIO = new char[255];
+	char* number = new char[255];
+	char* dateZ = new char[255];
+	char* dateO = new char[255];
+	/*tm dateZ;
+	tm dateO;*/
+	int dolg = 0;
+	int credit = 0;
+};
+
+//Структура содержащая данные об услугах (БД услуг).
+//			Составляется на основе данных из services.txt
+struct service {
+	char* sName = new char[255];
+	int kode = 0;
+	float costS = 0;
+	char* amount = new char[255];
+};
+
+//Структура содержащая данные об использовании услуг клиентами (БД использования услуг клиентами).
+//			Составляется на основе данных из servicesInfo.txt
+struct info {
+	char* number = new char[255];
+	int kode = 0;
+	tm lastUsingDate;
+	char* usingTime = new char[255];
+};
+
+//Переменная указывающая на количество строк в файлах
+//			(а соответственно и на количество записей в БД)
+#define n 10
+
+//Основной код программы
+int main()
+{
+	//Создание переменной времени
+	//			Время считается в секундах от начала эпохи (01.01.1970)
+	time_t startTime;
+	//Получение текушего локального времени компьютера
+	//			В секундах от начала эпохи
+	time(&startTime);
+
+	//Установка кирилической кодировки
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+
+	//Открытие необходимых файлов:
+	//		clients.txt, services.txt, servicesInfo.txt, param.ini на чтение
+	//		Report.txt на запись
+	FILE* clientsFile, * serviceFile, * servicesInfoFile, * paramFile, * reportFile;
+	clientsFile = fopen("clients.txt", "r");
+	serviceFile = fopen("services.txt", "r");
+	servicesInfoFile = fopen("servicesInfo.txt", "r");
+	paramFile = fopen("param.ini", "r");
+	reportFile = fopen("Report.txt", "w");
+
+	//Создание массива структур, отвечающего за БД клиентов
+	clients* mainBD = new clients[n];
+	//Заполнение БД клиентов данными из файла clients.txt
+	for (int i = 0; i < n; i++) {
+		char* strTemp;
+		fgets(mainBD[i].FIO, 255, clientsFile);
+		strTemp = mainBD[i].FIO;
+
+		int f;
+		f = 0;
+		while (f != 6) {
+			char* strTempCut;
+			if (f == 0) {
+				strTempCut = strtok(strTemp, ",");
+			}
+			else {
+				strTempCut = strtok(NULL, ", ");
+			}
+
+			switch (f)
+			{
+			case 0:
+				mainBD[i].FIO = strTempCut;
+				f++;
+				break;
+			case 1:
+				mainBD[i].number = strTempCut;
+				f++;
+				break;
+			case 2:
+				mainBD[i].dateZ = strTempCut;
+				f++;
+				break;
+			case 3:
+				mainBD[i].dateO = strTempCut;
+				f++;
+				break;
+			case 4:
+				mainBD[i].dolg = atoi(strTempCut);
+				f++;
+				break;
+			case 5:
+				mainBD[i].credit = atoi(strTempCut);
+				f++;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	//Создание массива структур, отвечающего за БД услуг
+	service* serviceBD = new service[n];
+	//Заполнение БД услуг данными из файла servicesInfo.txt
+	for (int i = 0; i < n; i++) {
+		char* strTemp;
+		fgets(serviceBD[i].sName, 255, serviceFile);
+		strTemp = serviceBD[i].sName;
+
+		int f;
+		f = 0;
+		while (f != 4) {
+			char* strTempCut;
+			if (f == 0) {
+				strTempCut = strtok(strTemp, ",");
+			}
+			else {
+				strTempCut = strtok(NULL, ", ");
+			}
+
+			switch (f)
+			{
+			case 0:
+				serviceBD[i].sName = strTempCut;
+				f++;
+				break;
+			case 1:
+				serviceBD[i].kode = atoi(strTempCut);
+				f++;
+				break;
+			case 2:
+				serviceBD[i].costS = atoi(strTempCut);
+				f++;
+				break;
+			case 3:
+				serviceBD[i].amount = strTempCut;
+				f++;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+
+	//Создание массива структур, отвечающего за БД использования услуг клиентами
+	info* serviceInfoBD = new info[n];
+	//Создание массива строк для заполнения его датами из файла servicesInfo.txt
+	char** wideDate = new char* [n];
+	for (int i = 0; i < n; i++)
+		wideDate[i] = new char[255];
+
+	//Заполнение БД использования услуг клиентами данными из файла servicesInfo.txt
+	//			(Кроме дат. Они записываются в массив строк wideDate)
+	for (int i = 0; i < n; i++) {
+		char* strTemp;
+		fgets(serviceInfoBD[i].number, 255, servicesInfoFile);
+		strTemp = serviceInfoBD[i].number;
+
+		int f;
+		f = 0;
+		while (f != 4) {
+			char* strTempCut = NULL;
+			if (f == 0) {
+				strTempCut = strtok(strTemp, ",");
+			}
+			else if (f == 2) {
+				strTempCut = strtok(NULL, ",");
+			}
+			else if (f != 0 && f != 2) {
+				strTempCut = strtok(NULL, ", ");
+			}
+
+			switch (f)
+			{
+			case 0:
+				serviceInfoBD[i].number = strTempCut;
+				f++;
+				break;
+			case 1:
+				serviceInfoBD[i].kode = atoi(strTempCut);
+				f++;
+				break;
+			case 2:
+				wideDate[i] = strTempCut;
+				f++;
+				break;
+			case 3:
+				serviceInfoBD[i].usingTime = strTempCut;
+				f++;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	//Конвертирование строк с датами из массива wideDate в структуры дат
+	//			и последущая запись этих структур в БД использования услуг клиентами
+	for (int i = 0; i < n; i++)
+	{
+		int k = 0;
+		char* sct = NULL;
+		while (k != 6) {
+			switch (k) {
+			case 0:
+				sct = strtok(wideDate[i], ".");
+				break;
+			case 1:
+				sct = strtok(NULL, ".");
+				break;
+			case 2:
+				sct = strtok(NULL, " ");
+				break;
+			case 3:
+			case 4:
+				sct = strtok(NULL, ":");
+				break;
+			case 5:
+				sct = strtok(NULL, ", .");
+				break;
+			default:
+				break;
+			}
+
+
+			switch (k) {
+			case 0:
+				serviceInfoBD[i].lastUsingDate.tm_mday = atoi(sct);
+				k++;
+				break;
+			case 1:
+				serviceInfoBD[i].lastUsingDate.tm_mon = atoi(sct) - 1;
+				k++;
+				break;
+			case 2:
+				serviceInfoBD[i].lastUsingDate.tm_year = atoi(sct) - 1900;
+				k++;
+				break;
+			case 3:
+				serviceInfoBD[i].lastUsingDate.tm_hour = atoi(sct);
+				k++;
+				break;
+			case 4:
+				serviceInfoBD[i].lastUsingDate.tm_min = atoi(sct);
+				k++;
+				break;
+			case 5:
+				serviceInfoBD[i].lastUsingDate.tm_sec = atoi(sct);
+				k++;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	
+
+	//Вычисление даты на месяц ранее локального времени компьютера при запуске программы
+	//			В секундах от начала эпохи
+	time_t monthLaterTime = startTime - 2592000;
+
+	//Чтение параметров из файла параметров (param.ini)
+	int parapaparam = 0;
+	fscanf(paramFile, "%d", &parapaparam);
+	
+	//Выбор пользователей с долгом не более заданного в файле параметров
+	//			Обнуление ФИО означает, что текущий клиент не подходит
+	for (int i = 0; i < n; i++) {
+		if (mainBD[i].dolg > parapaparam)
+			mainBD[i].FIO = NULL;
+	}
+
+	//Выбор клиентов использующих услугу не ранее чем месяц назад от запуска программы
+	for (int i = 0; i < n; i++) {
+		if (mainBD[i].FIO != 0) { //Проверка: подходит ли данный клиент по размеру долга
+			for (int j = 0; j < n; j++) {
+				//Проверка: совпадает ли номер текушего i-го пользователя с j-тым пользователем использующим услугу
+				//			Проверка осуществляется сравнением индивидуальных номеров
+				if (strcmp(serviceInfoBD[j].number, mainBD[i].number) == 0) { 
+					//Проверка: попадает ли последняя дата использования клиентом услуги в заданный диапазон времени
+					if (mktime(&serviceInfoBD[j].lastUsingDate) <= startTime && mktime(&serviceInfoBD[j].lastUsingDate) >= monthLaterTime) {
+						//Вывод ФИО подходящего по всем условиям пользователя в файл Report.txt
+						fprintf(reportFile, "%s\n", mainBD[i].FIO);
+					}
+				}
+			}
+		}
+	}
+
+	//Вывод в консоль сообщения о выполнении задания
+	printf("Выполнено!\n");
+
+	//Закрытие всех файлов необходимых программе
+	fclose(clientsFile);
+	fclose(serviceFile);
+	fclose(servicesInfoFile);
+	fclose(paramFile);
+	fclose(reportFile);
+
+	//Очистка памяти
+	//	(Удаление всех БД после работы над ними)
+	delete[] mainBD;
+	delete[] serviceBD;
+	delete[] serviceInfoBD;
+
+	//Возвращение 0-го кода завершения программы
+	return 0;
+}
