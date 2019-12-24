@@ -14,8 +14,6 @@ struct clients {
 	char* number = new char[255];
 	char* dateZ = new char[255];
 	char* dateO = new char[255];
-	/*tm dateZ;
-	tm dateO;*/
 	int dolg = 0;
 	int credit = 0;
 };
